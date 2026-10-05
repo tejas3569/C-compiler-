@@ -355,6 +355,12 @@ int main() {
   }
 
   function initWebSocket() {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocal) {
+      console.log('Running on cloud (Vercel mode) - using Cloud GCC API');
+      return;
+    }
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
 
@@ -449,6 +455,10 @@ int main() {
     setStatus('busy', 'Compiling with GCC...');
 
     const customStdin = customStdinText.value;
+    let stdinToUse = customStdin;
+    if (!stdinToUse && interactiveInputField.value.trim()) {
+      stdinToUse = interactiveInputField.value.trim() + '\n';
+    }
 
     // Use WebSocket if connected and no batch custom stdin override
     if (ws && ws.readyState === WebSocket.OPEN && !customStdin) {
@@ -458,13 +468,17 @@ int main() {
       }));
     } else {
       // Fallback or Batch run with custom stdin via HTTP API
-      runViaHttp(code, customStdin);
+      runViaHttp(code, stdinToUse);
     }
   }
 
   async function runViaHttp(code, stdin) {
     try {
-      appendOutput('[Compiling and running via backend GCC...]\n', 'term-info');
+      const isCloud = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+      appendOutput(`[Compiling and executing via ${isCloud ? 'Cloud GCC (Vercel)' : 'GCC'}...]\n`, 'term-info');
+      if (stdin && stdin.trim()) {
+        appendOutput(`[Input (stdin): ${stdin.trim()}]\n`, 'term-input');
+      }
       const startTime = Date.now();
 
       const res = await fetch('/api/run', {

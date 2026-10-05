@@ -57,3 +57,17 @@ Then visit [http://localhost:3000](http://localhost:3000) in your browser.
 | `Ctrl + Enter` (or `Cmd + Enter`) | Compile & Run C Code |
 | `Escape` | Stop running program |
 | `Ctrl + S` | Saved automatically in browser |
+
+---
+
+## ☁️ How to Deploy to Vercel (100% Free)
+
+This project is fully configured for Vercel Serverless deployment using the included `vercel.json` and serverless functions in `api/`:
+
+1. Go to **[vercel.com](https://vercel.com)** and log in with your GitHub account.
+2. Click **"Add New..."** -> **"Project"**.
+3. Import your GitHub repository: **`tejas3569/C-compiler-`**.
+4. Leave all build settings at their defaults (Framework Preset: Other / None).
+5. Click **"Deploy"**.
+6. That's it! Your Online C Compiler will be live on `https://your-project.vercel.app` with cloud GCC execution enabled!
+
