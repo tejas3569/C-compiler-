@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Full-featured Online C Compiler and Editor with interactive terminal and GCC backend",
   "scripts": {
-    "start": "node server.js",
-    "build": "echo Static site ready"
+    "start": "node local-server.js"
   },
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
     "express": "^4.21.2",
     "ws": "^8.18.0"
   }

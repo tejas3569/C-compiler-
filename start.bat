@@ -19,5 +19,5 @@ echo Opening Online C Compiler in your browser...
 start http://localhost:3000
 
 echo Starting backend server on http://localhost:3000 ...
-node server.js
+node local-server.js
 pause
