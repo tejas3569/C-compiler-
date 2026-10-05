@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Temporary compiler runs & artifacts
+.temp_runs/
+*.exe
+*.o
+*.obj
+*.out
+
+# Logs & temp
+*.log
+npm-debug.log*
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
