@@ -11,19 +11,23 @@ app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use(express.static(path.join(__dirname, '..')));
 
-// GET / - Serve index.html
+// GET / - Serve index.html reliably
 app.get('/', (req, res) => {
-  const possiblePaths = [
+  const candidates = [
+    path.join(process.cwd(), 'index.html'),
     path.join(__dirname, '..', 'index.html'),
+    path.join(process.cwd(), 'public', 'index.html'),
     path.join(__dirname, '..', 'public', 'index.html')
   ];
-  for (const p of possiblePaths) {
-    if (fs.existsSync(p)) {
+
+  for (const file of candidates) {
+    if (fs.existsSync(file)) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res.sendFile(p);
+      return res.status(200).send(fs.readFileSync(file, 'utf8'));
     }
   }
-  res.status(404).send('index.html not found');
+
+  res.status(200).send('<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/index.html"></head></html>');
 });
 
 // GET /api/status
@@ -121,13 +125,5 @@ app.post('/api/run', async (req, res) => {
     });
   }
 });
-
-// Local dev runner
-if (require.main === module && !process.env.VERCEL) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-  });
-}
 
 module.exports = app;
