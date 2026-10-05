@@ -13,7 +13,15 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { code, stdin = '' } = req.body || {};
+  let body = req.body;
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body);
+    } catch (e) {
+      body = {};
+    }
+  }
+  const { code, stdin = '' } = body || {};
   if (!code || typeof code !== 'string') {
     return res.status(400).json({ error: 'Source code is required.' });
   }
