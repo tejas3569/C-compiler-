@@ -232,7 +232,7 @@ int main() {
   codeFallback.value = initialCode;
 
   // Event Listeners
-  runBtn.addEventListener('click', handleRun);
+  runBtn.addEventListener('click', () => handleRun());
   stopBtn.addEventListener('click', handleStop);
   clearCodeBtn.addEventListener('click', handleResetCode);
   formatBtn.addEventListener('click', handleFormatCode);
@@ -462,11 +462,12 @@ int main() {
     setRunningState(true);
     setStatus('busy', 'Compiling with GCC...');
 
-    let stdinToUse = explicitStdin;
-    if (stdinToUse === undefined || stdinToUse === null) {
-      const customStdin = customStdinText.value;
-      stdinToUse = customStdin;
-      if (!stdinToUse && interactiveInputField.value.trim()) {
+    let stdinToUse = typeof explicitStdin === 'string' ? explicitStdin : '';
+    if (!stdinToUse) {
+      const customStdin = customStdinText ? customStdinText.value : '';
+      if (typeof customStdin === 'string' && customStdin.trim()) {
+        stdinToUse = customStdin;
+      } else if (interactiveInputField && typeof interactiveInputField.value === 'string' && interactiveInputField.value.trim()) {
         stdinToUse = interactiveInputField.value.trim() + '\n';
       }
     }
@@ -483,7 +484,8 @@ int main() {
     }
   }
 
-  async function runViaHttp(code, stdin) {
+  async function runViaHttp(code, rawStdin) {
+    const stdin = typeof rawStdin === 'string' ? rawStdin : '';
     try {
       const isCloud = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
       appendOutput(`[Compiling and executing via ${isCloud ? 'Cloud GCC (Vercel)' : 'GCC'}...]\n`, 'term-info');
