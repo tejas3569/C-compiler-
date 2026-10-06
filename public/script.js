@@ -489,7 +489,9 @@ int main() {
     try {
       const isCloud = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
       appendOutput(`[Compiling and executing via ${isCloud ? 'Cloud GCC (Vercel)' : 'GCC'}...]\n`, 'term-info');
-      if (stdin && stdin.trim()) {
+      
+      const hasPrompts = /(?:printf|puts|fputs)\s*\(\s*"([^"]+)"(?:(?!printf|puts|fputs)[\s\S])*?(?:scanf|getchar|fgets|fgetc|getc)\s*\(/i.test(code);
+      if (!hasPrompts && stdin && stdin.trim()) {
         appendOutput(`[Input (stdin): ${stdin.trim()}]\n`, 'term-input');
       }
       const startTime = Date.now();
@@ -523,7 +525,8 @@ int main() {
       }
 
       if (data.output) {
-        appendOutput(data.output, 'term-stdout');
+        const displayOutput = formatCodeOutput(code, data.output, stdin);
+        appendOutput(displayOutput, 'term-stdout');
       }
 
       if (data.error) {
@@ -782,5 +785,53 @@ int main() {
         if (editor) editor.layout();
       }
     });
+  }
+
+  function formatCodeOutput(code, rawOutput, stdin) {
+    if (!rawOutput || !stdin || typeof stdin !== 'string' || !stdin.trim()) {
+      return rawOutput || '';
+    }
+
+    // 1. Extract prompts from code: printf/puts before scanf/getchar/fgets/getc
+    const prompts = [];
+    const regex = /(?:printf|puts|fputs)\s*\(\s*"([^"]+)"(?:(?!printf|puts|fputs)[\s\S])*?(?:scanf|getchar|fgets|fgetc|getc)\s*\(/g;
+    let match;
+    while ((match = regex.exec(code)) !== null) {
+      const promptStr = match[1].replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+      prompts.push(promptStr);
+    }
+
+    if (prompts.length === 0) {
+      return rawOutput;
+    }
+
+    // 2. Tokenize stdin into lines and whitespace tokens
+    const lines = stdin.trim().split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    if (lines.length === 0) return rawOutput;
+
+    const tokens = [];
+    for (const line of lines) {
+      tokens.push(...line.split(/\s+/).filter(Boolean));
+    }
+
+    const useTokens = (prompts.length > lines.length && prompts.length <= tokens.length);
+    const inputs = useTokens ? tokens : lines;
+
+    let formatted = rawOutput;
+    let searchStart = 0;
+    let inputIdx = 0;
+
+    for (let i = 0; i < prompts.length; i++) {
+      const prompt = prompts[i];
+      const pos = formatted.indexOf(prompt, searchStart);
+      if (pos !== -1 && inputIdx < inputs.length) {
+        const val = inputs[inputIdx++];
+        const afterPos = pos + prompt.length;
+        formatted = formatted.slice(0, afterPos) + val + '\n' + formatted.slice(afterPos);
+        searchStart = afterPos + val.length + 1;
+      }
+    }
+
+    return formatted;
   }
 })();
