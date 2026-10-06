@@ -1,5 +1,5 @@
 {
-  "cleanUrls": true,
+  "version": 2,
   "headers": [
     {
       "source": "/api/(.*)",
@@ -9,5 +9,10 @@
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
       ]
     }
+  ],
+  "rewrites": [
+    { "source": "/api/run", "destination": "/api/run.js" },
+    { "source": "/api/status", "destination": "/api/status.js" },
+    { "source": "/(.*)", "destination": "/index.js" }
   ]
 }

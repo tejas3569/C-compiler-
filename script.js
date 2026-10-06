@@ -260,16 +260,24 @@ int main() {
   // Interactive Input Form submission
   interactiveInputForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    const val = interactiveInputField.value;
-    sendStdin(val + '\n');
+    const val = interactiveInputField.value.trim();
+    if (!val) return;
+
+    if (ws && ws.readyState === WebSocket.OPEN && isRunning) {
+      sendStdin(val + '\n');
+      interactiveInputField.value = '';
+      return;
+    }
+
+    // Cloud / HTTP mode: execute with this input
     interactiveInputField.value = '';
+    customStdinText.value = val;
+    handleRun(val + '\n');
   });
 
   // Clicking terminal focuses interactive input when running
   terminal.addEventListener('click', () => {
-    if (isRunning) {
-      interactiveInputField.focus();
-    }
+    interactiveInputField.focus();
   });
 
   // Typing in terminal forwards to interactive input field
@@ -436,7 +444,7 @@ int main() {
     }
   }
 
-  function handleRun() {
+  function handleRun(explicitStdin) {
     if (isRunning) return;
 
     const code = getCode().trim();
@@ -454,21 +462,24 @@ int main() {
     setRunningState(true);
     setStatus('busy', 'Compiling with GCC...');
 
-    const customStdin = customStdinText.value;
-    let stdinToUse = customStdin;
-    if (!stdinToUse && interactiveInputField.value.trim()) {
-      stdinToUse = interactiveInputField.value.trim() + '\n';
+    let stdinToUse = explicitStdin;
+    if (stdinToUse === undefined || stdinToUse === null) {
+      const customStdin = customStdinText.value;
+      stdinToUse = customStdin;
+      if (!stdinToUse && interactiveInputField.value.trim()) {
+        stdinToUse = interactiveInputField.value.trim() + '\n';
+      }
     }
 
     // Use WebSocket if connected and no batch custom stdin override
-    if (ws && ws.readyState === WebSocket.OPEN && !customStdin) {
+    if (ws && ws.readyState === WebSocket.OPEN && !stdinToUse) {
       ws.send(JSON.stringify({
         type: 'run',
         code: code
       }));
     } else {
       // Fallback or Batch run with custom stdin via HTTP API
-      runViaHttp(code, stdinToUse);
+      runViaHttp(code, stdinToUse || '');
     }
   }
 
@@ -522,6 +533,15 @@ int main() {
       appendOutput(`\n=== Process exited with code ${data.exitCode} ===\n`, isSuccess ? 'term-meta' : 'term-error');
       showMetrics(data.compileTimeMs, data.executionTimeMs, data.exitCode);
 
+      // Helpful tip if scanf was used without input
+      const hasInputFn = /\b(scanf|getchar|getc|fgets|fgetc|gets)\s*\(/.test(code);
+      if (hasInputFn && (!stdin || !stdin.trim())) {
+        appendOutput('\n💡 Tip: Your C program reads input. Enter your value in the input bar below and press Enter / Send to execute with that input.\n', 'term-warning');
+        interactiveInputForm.classList.add('is-waiting');
+        interactiveInputField.placeholder = 'Enter value (e.g. 45) and press Enter...';
+        interactiveInputField.focus();
+      }
+
     } catch (err) {
       setRunningState(false);
       setStatus('error', 'Execution Error');
@@ -568,8 +588,14 @@ int main() {
       setTimeout(() => interactiveInputField.focus(), 50);
     } else {
       interactiveInputForm.classList.remove('is-waiting');
-      interactiveInputField.placeholder = 'Program finished. Click Run (Ctrl+Enter) to execute.';
-      interactiveInputField.value = '';
+      const code = getCode();
+      const hasInputFn = /\b(scanf|getchar|getc|fgets|fgetc|gets)\s*\(/.test(code);
+      if (hasInputFn) {
+        interactiveInputField.placeholder = 'Type input for scanf() (e.g. 45) and press Enter...';
+      } else {
+        interactiveInputField.placeholder = 'Program finished. Click Run (Ctrl+Enter) to execute.';
+      }
+      interactiveInputField.disabled = false;
     }
   }
 

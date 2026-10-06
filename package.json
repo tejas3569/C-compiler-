@@ -2,12 +2,15 @@
   "name": "online-c-compiler",
   "version": "1.0.0",
   "description": "Full-featured Online C Compiler and Editor with interactive terminal and GCC backend",
+  "main": "index.js",
   "scripts": {
-    "start": "node local-server.js"
+    "start": "node index.js",
+    "local": "node local-server.js"
   },
-  "dependencies": {},
+  "dependencies": {
+    "express": "^4.21.2"
+  },
   "devDependencies": {
-    "express": "^4.21.2",
     "ws": "^8.18.0"
   }
 }
