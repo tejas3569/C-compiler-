@@ -85,6 +85,7 @@ module.exports = async (req, res) => {
     return res.json({
       status: 'success',
       output: output,
+      rawOutput: rawOutput,
       error: error,
       compilationWarnings: result.compiler_output || '',
       exitCode: exitCode,
@@ -140,6 +141,10 @@ function formatCodeOutput(code, rawOutput, stdin) {
     if (pos !== -1 && inputIdx < inputs.length) {
       const val = inputs[inputIdx++];
       const afterPos = pos + prompt.length;
+      if (formatted.slice(afterPos).trim().startsWith(val)) {
+        searchStart = afterPos;
+        continue;
+      }
       formatted = formatted.slice(0, afterPos) + val + '\n' + formatted.slice(afterPos);
       searchStart = afterPos + val.length + 1;
     }

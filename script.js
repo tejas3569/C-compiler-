@@ -186,6 +186,7 @@ int main() {
   let editor = null;
   let ws = null;
   let isRunning = false;
+  let activeInteractiveSession = null;
   let currentFontSize = 14;
   let currentTheme = localStorage.getItem('c_compiler_theme') || 'dark';
 
@@ -263,13 +264,39 @@ int main() {
     const val = interactiveInputField.value.trim();
     if (!val) return;
 
-    if (ws && ws.readyState === WebSocket.OPEN && isRunning) {
+    // WebSocket real-time mode (local MinGW GCC)
+    if (ws && ws.readyState === WebSocket.OPEN && isRunning && !activeInteractiveSession) {
       sendStdin(val + '\n');
       interactiveInputField.value = '';
       return;
     }
 
-    // Cloud / HTTP mode: execute with this input
+    // Active interactive step-by-step session
+    if (activeInteractiveSession) {
+      interactiveInputField.value = '';
+      appendOutput(val + '\n', 'term-input');
+      activeInteractiveSession.inputs.push(val);
+      activeInteractiveSession.promptIndex++;
+
+      // Check if there are more prompts to ask
+      if (activeInteractiveSession.promptIndex < activeInteractiveSession.prompts.length) {
+        const nextPrompt = activeInteractiveSession.prompts[activeInteractiveSession.promptIndex];
+        appendOutput(nextPrompt, 'term-stdout');
+        const cleanPromptLabel = nextPrompt.replace(/[:=\s]+$/, '').trim() || 'input';
+        interactiveInputField.placeholder = `👉 Enter ${cleanPromptLabel}... (Press Enter)`;
+        interactiveInputField.focus();
+        setStatus('busy', `Waiting for input: ${nextPrompt.trim()}`);
+      } else {
+        // All prompts collected! Execute the program now!
+        const finalStdin = activeInteractiveSession.inputs.join('\n') + '\n';
+        const session = activeInteractiveSession;
+        activeInteractiveSession = null;
+        executeProgramAfterPrompts(session, finalStdin);
+      }
+      return;
+    }
+
+    // Direct run with input if not in active session
     interactiveInputField.value = '';
     customStdinText.value = val;
     handleRun(val + '\n');
@@ -457,30 +484,118 @@ int main() {
     document.querySelector('.tab-btn[data-target="consoleTab"]').click();
 
     // Clear previous output & reset metrics
+    activeInteractiveSession = null;
     terminal.innerHTML = '';
     resetMetrics();
-    setRunningState(true);
-    setStatus('busy', 'Compiling with GCC...');
 
-    let stdinToUse = typeof explicitStdin === 'string' ? explicitStdin : '';
-    if (!stdinToUse) {
-      const customStdin = customStdinText ? customStdinText.value : '';
-      if (typeof customStdin === 'string' && customStdin.trim()) {
-        stdinToUse = customStdin;
-      } else if (interactiveInputField && typeof interactiveInputField.value === 'string' && interactiveInputField.value.trim()) {
-        stdinToUse = interactiveInputField.value.trim() + '\n';
-      }
-    }
+    // Check if user provided explicit stdin or batch input in Custom STDIN tab
+    const customStdin = customStdinText ? customStdinText.value.trim() : '';
+    const hasExplicitStdin = typeof explicitStdin === 'string' && explicitStdin.trim();
 
-    // Use WebSocket if connected and no batch custom stdin override
-    if (ws && ws.readyState === WebSocket.OPEN && !stdinToUse) {
+    // Use WebSocket if connected for local real-time mode
+    if (ws && ws.readyState === WebSocket.OPEN && !customStdin && !hasExplicitStdin) {
+      setRunningState(true);
+      setStatus('busy', 'Compiling with GCC...');
       ws.send(JSON.stringify({
         type: 'run',
         code: code
       }));
-    } else {
-      // Fallback or Batch run with custom stdin via HTTP API
-      runViaHttp(code, stdinToUse || '');
+      return;
+    }
+
+    // Cloud / HTTP mode:
+    // If user provided input in advance, run immediately
+    if (hasExplicitStdin || customStdin) {
+      setRunningState(true);
+      setStatus('busy', 'Compiling with GCC...');
+      runViaHttp(code, hasExplicitStdin ? explicitStdin : customStdin);
+      return;
+    }
+
+    // Check if program asks for input (scanf, getchar, fgets)
+    const prompts = getInteractivePrompts(code);
+    if (prompts.length > 0) {
+      // ASK THE USER FIRST!
+      setRunningState(true);
+      setStatus('busy', `Waiting for input: ${prompts[0].trim()}`);
+      appendOutput(`[Compiling and executing via Cloud GCC (Vercel)...]\n`, 'term-info');
+      appendOutput(prompts[0], 'term-stdout');
+
+      activeInteractiveSession = {
+        code: code,
+        prompts: prompts,
+        promptIndex: 0,
+        inputs: []
+      };
+
+      interactiveInputForm.classList.add('is-waiting');
+      const cleanPromptLabel = prompts[0].replace(/[:=\s]+$/, '').trim() || 'input';
+      interactiveInputField.placeholder = `👉 Enter ${cleanPromptLabel}... (Press Enter)`;
+      interactiveInputField.value = '';
+      setTimeout(() => interactiveInputField.focus(), 50);
+      return;
+    }
+
+    // No inputs required (e.g. Hello World, math, loops)
+    setRunningState(true);
+    setStatus('busy', 'Compiling with GCC...');
+    runViaHttp(code, '');
+  }
+
+  async function executeProgramAfterPrompts(session, finalStdin) {
+    try {
+      setStatus('busy', 'Executing with input...');
+      interactiveInputForm.classList.remove('is-waiting');
+      interactiveInputField.placeholder = 'Executing program...';
+
+      const res = await fetch('/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: session.code, stdin: finalStdin })
+      });
+
+      const data = await res.json();
+      setRunningState(false);
+
+      if (data.status === 'compile_error') {
+        setStatus('error', 'Compilation Failed');
+        appendOutput(`\n❌ Compilation Error:\n${data.compilationError}\n`, 'term-error');
+        showMetrics(data.compileTimeMs, null, 1);
+        return;
+      }
+
+      if (data.compilationWarnings && data.compilationWarnings.trim()) {
+        appendOutput(`[Warnings]:\n${data.compilationWarnings}\n`, 'term-warning');
+      }
+
+      if (data.status === 'timeout') {
+        setStatus('error', 'Time Limit Exceeded');
+        appendOutput(`\n❌ ${data.error}\n`, 'term-error');
+        showMetrics(data.compileTimeMs, data.executionTimeMs, -1);
+        return;
+      }
+
+      // The prompts and inputs were ALREADY displayed interactively!
+      // Strip prompts from the returned output so only the final output displays!
+      const raw = data.rawOutput || data.output || '';
+      const remainingOutput = stripEchoedPrompts(session.prompts, raw);
+      if (remainingOutput) {
+        appendOutput(remainingOutput, 'term-stdout');
+      }
+
+      if (data.error) {
+        appendOutput(data.error, 'term-error');
+      }
+
+      const isSuccess = data.exitCode === 0;
+      setStatus(isSuccess ? 'ready' : 'error', `Exited with code ${data.exitCode}`);
+      appendOutput(`\n=== Process exited with code ${data.exitCode} ===\n`, isSuccess ? 'term-meta' : 'term-error');
+      showMetrics(data.compileTimeMs, data.executionTimeMs, data.exitCode);
+
+    } catch (err) {
+      setRunningState(false);
+      setStatus('error', 'Execution Error');
+      appendOutput(`\nNetwork or server error: ${err.message}\n`, 'term-error');
     }
   }
 
@@ -525,8 +640,7 @@ int main() {
       }
 
       if (data.output) {
-        const displayOutput = formatCodeOutput(code, data.output, stdin);
-        appendOutput(displayOutput, 'term-stdout');
+        appendOutput(data.output, 'term-stdout');
       }
 
       if (data.error) {
@@ -538,15 +652,6 @@ int main() {
       appendOutput(`\n=== Process exited with code ${data.exitCode} ===\n`, isSuccess ? 'term-meta' : 'term-error');
       showMetrics(data.compileTimeMs, data.executionTimeMs, data.exitCode);
 
-      // Helpful tip if scanf was used without input
-      const hasInputFn = /\b(scanf|getchar|getc|fgets|fgetc|gets)\s*\(/.test(code);
-      if (hasInputFn && (!stdin || !stdin.trim())) {
-        appendOutput('\n💡 Tip: Your C program reads input. Enter your value in the input bar below and press Enter / Send to execute with that input.\n', 'term-warning');
-        interactiveInputForm.classList.add('is-waiting');
-        interactiveInputField.placeholder = 'Enter value (e.g. 45) and press Enter...';
-        interactiveInputField.focus();
-      }
-
     } catch (err) {
       setRunningState(false);
       setStatus('error', 'Execution Error');
@@ -555,6 +660,13 @@ int main() {
   }
 
   function handleStop() {
+    if (activeInteractiveSession) {
+      activeInteractiveSession = null;
+      setRunningState(false);
+      setStatus('ready', 'Stopped by user');
+      appendOutput('\n[Stopped by user]\n', 'term-error');
+      return;
+    }
     if (!isRunning) return;
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'stop' }));
@@ -833,5 +945,30 @@ int main() {
     }
 
     return formatted;
+  }
+
+  function getInteractivePrompts(code) {
+    const prompts = [];
+    const regex = /(?:printf|puts|fputs)\s*\(\s*"([^"]+)"(?:(?!printf|puts|fputs)[\s\S])*?(?:scanf|getchar|fgets|fgetc|getc)\s*\(/g;
+    let match;
+    while ((match = regex.exec(code)) !== null) {
+      const raw = match[1].replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+      prompts.push(raw);
+    }
+    if (prompts.length === 0 && /\b(scanf|getchar|fgets)\s*\(/.test(code)) {
+      prompts.push('Enter input: ');
+    }
+    return prompts;
+  }
+
+  function stripEchoedPrompts(prompts, text) {
+    let result = text || '';
+    for (const prompt of prompts) {
+      const idx = result.indexOf(prompt);
+      if (idx !== -1) {
+        result = result.slice(0, idx) + result.slice(idx + prompt.length);
+      }
+    }
+    return result;
   }
 })();
