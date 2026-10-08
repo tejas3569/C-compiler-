@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Online C Compiler & Editor</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💻</text></svg>">
   <link rel="stylesheet" href="style.css">
@@ -108,8 +108,85 @@
           <span class="theme-icon-dark">🌙</span>
           <span class="theme-icon-light" style="display:none;">☀️</span>
         </button>
+
+        <!-- Mobile More Options Button -->
+        <button id="mobileToolsBtn" class="btn btn-ghost icon-only" title="More Tools" aria-label="More Tools">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+            <circle cx="12" cy="12" r="1.5"/>
+            <circle cx="12" cy="5" r="1.5"/>
+            <circle cx="12" cy="19" r="1.5"/>
+          </svg>
+        </button>
+
+        <!-- Mobile Tools Dropdown Menu -->
+        <div class="mobile-tools-dropdown" id="mobileToolsDropdown">
+          <button class="mobile-tool-item" id="mobileToolFormat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10H3M21 6H3M15 14H3M15 18H3"/>
+            </svg>
+            <span>Format Code</span>
+          </button>
+          <button class="mobile-tool-item" id="mobileToolCopy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span>Copy Code</span>
+          </button>
+          <button class="mobile-tool-item" id="mobileToolReset">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+            </svg>
+            <span>Reset to Template</span>
+          </button>
+          <button class="mobile-tool-item" id="mobileToolDownload">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Download main.c</span>
+          </button>
+          <label class="mobile-tool-item" id="mobileToolUploadLabel">
+            <input type="file" id="mobileUploadInput" accept=".c,.h" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <span>Upload .c file</span>
+          </label>
+          <div class="mobile-tool-divider"></div>
+          <div class="mobile-tool-row">
+            <span>Font Size</span>
+            <div class="mobile-font-btns">
+              <button id="mobileFontDec" class="btn btn-ghost icon-only sm" title="Decrease Font">A-</button>
+              <button id="mobileFontInc" class="btn btn-ghost icon-only sm" title="Increase Font">A+</button>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
+
+    <!-- Mobile View Switcher (Visible on screens <= 768px) -->
+    <nav class="mobile-nav-bar" id="mobileNavBar" aria-label="Mobile View Switcher">
+      <button class="mobile-nav-btn active" id="mobileTabCode" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mobile-nav-icon">
+          <polyline points="16 18 22 12 16 6"/>
+          <polyline points="8 6 2 12 8 18"/>
+        </svg>
+        <span>Code</span>
+      </button>
+      <button class="mobile-nav-btn" id="mobileTabConsole" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mobile-nav-icon">
+          <polyline points="4 17 10 11 4 5"/>
+          <line x1="12" y1="19" x2="20" y2="19"/>
+        </svg>
+        <span>Console</span>
+        <span class="mobile-nav-dot" id="mobileConsoleDot" style="display:none;"></span>
+      </button>
+    </nav>
 
     <!-- Main Workspace Split Pane -->
     <main class="workspace" id="workspace">

@@ -90,7 +90,23 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   width: 100vw;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Mobile Navigation Bar & Tools (Hidden on Desktop) */
+.mobile-nav-bar {
+  display: none;
+}
+
+#mobileToolsBtn {
+  display: none;
+}
+
+.mobile-tools-dropdown {
+  display: none;
 }
 
 /* Header */
@@ -737,25 +753,364 @@ html, body {
   color: #f87171;
 }
 
-/* Mobile Responsive */
-@media (max-width: 768px) {
-  .workspace {
-    flex-direction: column;
+/* Mobile Tools Dropdown Menu */
+.mobile-tools-dropdown {
+  position: absolute;
+  top: 54px;
+  right: 10px;
+  background-color: var(--bg-pane-header);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px;
+  min-width: 190px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+.mobile-tools-dropdown.open {
+  display: flex !important;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
   }
-  .splitter {
-    width: 100%;
-    height: 6px;
-    cursor: row-resize;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  .splitter-handle {
-    width: 24px;
-    height: 2px;
-  }
-  .editor-pane, .output-pane {
-    flex: 1 1 50%;
-    border-left: none;
+}
+
+.mobile-tool-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s ease;
+  user-select: none;
+}
+
+.mobile-tool-item svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.mobile-tool-item:hover, .mobile-tool-item:active {
+  background-color: var(--bg-hover);
+}
+
+.mobile-tool-item:hover svg, .mobile-tool-item:active svg {
+  stroke: var(--text-main);
+}
+
+.mobile-tool-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 4px 0;
+}
+
+.mobile-tool-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.mobile-font-btns {
+  display: flex;
+  gap: 6px;
+}
+
+/* Medium Screens / Laptops (769px to 1024px) */
+@media (max-width: 1024px) {
+  .examples-dropdown-container .select-control {
+    max-width: 130px;
   }
   .shortcut-badge {
     display: none;
+  }
+  .app-header {
+    padding: 0 12px;
+    gap: 12px;
+  }
+}
+
+/* Mobile & Small Tablets (<= 768px) */
+@media (max-width: 768px) {
+  /* Header Compact */
+  .app-header {
+    height: 50px;
+    min-height: 50px;
+    padding: 0 10px;
+    gap: 8px;
+    justify-content: space-between;
+  }
+
+  .header-left {
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .logo {
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    border-radius: 6px;
+  }
+
+  .logo-subtitle {
+    display: none !important;
+  }
+
+  .logo-title {
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .examples-dropdown-container {
+    flex: 1;
+    min-width: 0;
+    max-width: 110px;
+  }
+
+  .examples-dropdown-container .select-control {
+    width: 100%;
+    max-width: 110px;
+    padding: 5px 6px;
+    font-size: 11px;
+    text-overflow: ellipsis;
+  }
+
+  .header-center {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  #runBtn {
+    padding: 6px 14px;
+    font-size: 13px;
+    min-height: 34px;
+  }
+
+  #stopBtn {
+    padding: 6px 10px;
+    font-size: 13px;
+    min-height: 34px;
+  }
+
+  #clearCodeBtn,
+  .action-btn-group,
+  .font-controls,
+  .divider-v,
+  .shortcut-badge {
+    display: none !important;
+  }
+
+  .header-right {
+    gap: 4px;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  #themeToggleBtn,
+  #mobileToolsBtn {
+    display: inline-flex !important;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Mobile Navigation Tabs (Code vs Console) */
+  .mobile-nav-bar {
+    display: flex !important;
+    height: 42px;
+    min-height: 42px;
+    background-color: var(--bg-header);
+    border-bottom: 1px solid var(--border-color);
+    padding: 4px 8px;
+    gap: 6px;
+    align-items: center;
+    position: relative;
+    z-index: 10;
+  }
+
+  .mobile-nav-btn {
+    flex: 1;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.15s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-nav-btn.active {
+    background-color: var(--bg-pane);
+    color: var(--text-main);
+    border-color: var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  .mobile-nav-icon {
+    width: 15px;
+    height: 15px;
+  }
+
+  .mobile-nav-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #10b981;
+    box-shadow: 0 0 6px #10b981;
+    position: absolute;
+    top: 7px;
+    right: 12px;
+    animation: pulse 1s infinite alternate;
+  }
+
+  /* Workspace on Mobile: Full Screen per Active Pane */
+  .workspace {
+    flex: 1;
+    flex-direction: column !important;
+    position: relative !important;
+    overflow: hidden !important;
+    height: calc(100% - 50px - 42px) !important;
+  }
+
+  .splitter {
+    display: none !important;
+  }
+
+  .editor-pane,
+  .output-pane {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100% !important;
+    height: 100% !important;
+    flex: none !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+
+  /* Default on mobile: Show Editor, Hide Console */
+  .workspace:not(.show-output) .editor-pane {
+    display: flex !important;
+    z-index: 2;
+  }
+  .workspace:not(.show-output) .output-pane {
+    display: none !important;
+    z-index: 1;
+  }
+
+  /* When .show-output is active: Show Console, Hide Editor */
+  .workspace.show-output .editor-pane {
+    display: none !important;
+    z-index: 1;
+  }
+  .workspace.show-output .output-pane {
+    display: flex !important;
+    z-index: 2;
+  }
+
+  /* Mobile Console & Terminal Improvements */
+  .terminal-screen {
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.55;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .welcome-banner {
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+
+  .banner-title {
+    font-size: 13px;
+  }
+
+  .banner-desc {
+    font-size: 11px;
+  }
+
+  /* Interactive Input Bar Mobile Touch Friendly */
+  .interactive-input-bar {
+    padding: 6px 10px;
+    gap: 8px;
+    min-height: 46px;
+  }
+
+  #interactiveInputField {
+    font-size: 16px !important; /* Critical to avoid iOS Safari auto-zoom */
+    padding: 6px 8px;
+  }
+
+  .interactive-input-bar button {
+    padding: 8px 14px;
+    font-size: 13px;
+    min-height: 34px;
+  }
+
+  /* Output Footer / Status Bar on Mobile */
+  .pane-footer {
+    height: 28px;
+    min-height: 28px;
+    padding: 0 10px;
+    font-size: 10px;
+  }
+
+  .metric-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+}
+
+/* Extra Small Phones (<= 360px) */
+@media (max-width: 360px) {
+  .logo-title {
+    display: none;
+  }
+  .examples-dropdown-container {
+    max-width: 100px;
   }
 }

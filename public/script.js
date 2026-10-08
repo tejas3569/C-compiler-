@@ -218,6 +218,12 @@ int main() {
   const editorPane = document.getElementById('editorPane');
   const outputPane = document.getElementById('outputPane');
   const codeFallback = document.getElementById('codeTextarea');
+  const workspace = document.getElementById('workspace');
+  const mobileTabCode = document.getElementById('mobileTabCode');
+  const mobileTabConsole = document.getElementById('mobileTabConsole');
+  const mobileConsoleDot = document.getElementById('mobileConsoleDot');
+  const mobileToolsBtn = document.getElementById('mobileToolsBtn');
+  const mobileToolsDropdown = document.getElementById('mobileToolsDropdown');
 
   // Initialize Theme
   applyTheme(currentTheme);
@@ -246,6 +252,76 @@ int main() {
   fontIncBtn.addEventListener('click', () => changeFontSize(1));
   clearOutputBtn.addEventListener('click', () => { terminal.innerHTML = ''; });
   copyOutputBtn.addEventListener('click', handleCopyOutput);
+
+  // Mobile View Switcher
+  function switchMobileView(view) {
+    if (view === 'console') {
+      workspace.classList.add('show-output');
+      if (mobileTabConsole) mobileTabConsole.classList.add('active');
+      if (mobileTabCode) mobileTabCode.classList.remove('active');
+      if (mobileConsoleDot) mobileConsoleDot.style.display = 'none';
+    } else {
+      workspace.classList.remove('show-output');
+      if (mobileTabCode) mobileTabCode.classList.add('active');
+      if (mobileTabConsole) mobileTabConsole.classList.remove('active');
+      if (editor) {
+        setTimeout(() => editor.layout(), 60);
+      }
+    }
+  }
+
+  if (mobileTabCode) {
+    mobileTabCode.addEventListener('click', () => switchMobileView('code'));
+  }
+  if (mobileTabConsole) {
+    mobileTabConsole.addEventListener('click', () => switchMobileView('console'));
+  }
+
+  // Mobile Tools Menu
+  if (mobileToolsBtn && mobileToolsDropdown) {
+    mobileToolsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      mobileToolsDropdown.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!mobileToolsDropdown.contains(e.target) && e.target !== mobileToolsBtn) {
+        mobileToolsDropdown.classList.remove('open');
+      }
+    });
+
+    const bindTool = (id, handler) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('click', () => {
+          mobileToolsDropdown.classList.remove('open');
+          handler();
+        });
+      }
+    };
+
+    bindTool('mobileToolFormat', handleFormatCode);
+    bindTool('mobileToolCopy', handleCopyCode);
+    bindTool('mobileToolReset', handleResetCode);
+    bindTool('mobileToolDownload', handleDownloadCode);
+
+    const mUpload = document.getElementById('mobileUploadInput');
+    if (mUpload) {
+      mUpload.addEventListener('change', (e) => {
+        mobileToolsDropdown.classList.remove('open');
+        handleUploadCode(e);
+      });
+    }
+
+    const mFontDec = document.getElementById('mobileFontDec');
+    if (mFontDec) {
+      mFontDec.addEventListener('click', () => changeFontSize(-1));
+    }
+    const mFontInc = document.getElementById('mobileFontInc');
+    if (mFontInc) {
+      mFontInc.addEventListener('click', () => changeFontSize(1));
+    }
+  }
 
   // Tabs switching in Output Pane
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -483,6 +559,11 @@ int main() {
     // Switch to output console tab
     document.querySelector('.tab-btn[data-target="consoleTab"]').click();
 
+    // On mobile, auto-switch view to console tab so user sees output & prompts immediately
+    if (window.innerWidth <= 768) {
+      switchMobileView('console');
+    }
+
     // Clear previous output & reset metrics
     activeInteractiveSession = null;
     terminal.innerHTML = '';
@@ -692,6 +773,11 @@ int main() {
     span.textContent = text;
     terminal.appendChild(span);
     terminal.scrollTop = terminal.scrollHeight;
+
+    // Show output notification dot if user is currently looking at mobile Code view
+    if (mobileConsoleDot && window.innerWidth <= 768 && !workspace.classList.contains('show-output')) {
+      mobileConsoleDot.style.display = 'inline-block';
+    }
   }
 
   function setRunningState(running) {
@@ -895,6 +981,13 @@ int main() {
         splitter.classList.remove('active');
         document.body.style.cursor = 'default';
         if (editor) editor.layout();
+      }
+    });
+
+    // Window Resize Handler for responsive layout
+    window.addEventListener('resize', () => {
+      if (editor) {
+        editor.layout();
       }
     });
   }
