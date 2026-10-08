@@ -35,7 +35,7 @@ module.exports = async (req, res) => {
       options: 'warning'
     });
 
-    const result = await new Promise((resolve, reject) => {
+    const makeRequest = () => new Promise((resolve, reject) => {
       const request = https.request('https://wandbox.org/api/compile.json', {
         method: 'POST',
         headers: {
@@ -64,6 +64,19 @@ module.exports = async (req, res) => {
       request.write(payload);
       request.end();
     });
+
+    let result;
+    try {
+      result = await makeRequest();
+    } catch (firstErr) {
+      if (firstErr.message && firstErr.message.includes('Too many requests')) {
+        // Wait 1.5s and retry once
+        await new Promise(r => setTimeout(r, 1500));
+        result = await makeRequest();
+      } else {
+        throw firstErr;
+      }
+    }
 
     const totalTimeMs = Date.now() - compileStart;
 
